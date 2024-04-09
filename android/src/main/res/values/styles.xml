@@ -1,0 +1,6 @@
+<resources>
+    <style name="BrightcoveControlBar.Custom" parent="BrightcoveControlBarDefault">
+        <item name="brightcove_full_screen">true</item>
+        <item name="brightcove_fast_forward">true</item>
+    </style>
+</resources>

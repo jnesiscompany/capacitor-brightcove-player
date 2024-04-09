@@ -1,0 +1,3 @@
+package com.jnesis.capacitor.brightcoveplayer.exception
+
+class FileNotExistAndNoInternetException : PluginException(ErrorCode.FILE_NOT_EXIST_AND_NO_INTERNET)
