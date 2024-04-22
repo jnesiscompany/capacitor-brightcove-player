@@ -1,0 +1,4 @@
+<resources>
+    <!--<string name="test">&#xf087;</string>-->
+    <string name="notification_channel_id">brightcove_notification_channel_003</string>
+</resources>
