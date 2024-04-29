@@ -21,7 +21,7 @@
     "clean": "rimraf ./dist",
     "watch": "tsc --watch",
     "prepublishOnly": "npm run build",
-    "publish-git": "npm run prepublishOnly && node scripts/publish-git.js --branch='publish-branch' --message='Publishing new version'"
+    "publish-git": "npm run prepublishOnly && node build-scripts/publish-git.js --branch='publish-branch' --message='Publishing new version'"
   },
   "author": "Jnesis",
   "license": "MIT",
