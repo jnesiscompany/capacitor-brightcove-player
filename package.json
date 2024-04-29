@@ -20,7 +20,8 @@
     "build": "npm run clean && npm run docgen && tsc && rollup -c rollup.config.js",
     "clean": "rimraf ./dist",
     "watch": "tsc --watch",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "publish-git": "npm run prepublishOnly && node build-scripts/publish-git.js --branch='publish-branch' --message='Publishing new version'"
   },
   "author": "Jnesis",
   "license": "MIT",
@@ -38,7 +39,7 @@
     "rimraf": "^3.0.2",
     "rollup": "^2.32.0",
     "swiftlint": "^1.0.1",
-    "typescript": "~4.1.5"
+    "typescript": "^4.8.4"
   },
   "peerDependencies": {
     "@capacitor/core": "^5.0.0"
