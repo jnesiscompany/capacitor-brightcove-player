@@ -20,7 +20,8 @@
     "build": "npm run clean && npm run docgen && tsc && rollup -c rollup.config.js",
     "clean": "rimraf ./dist",
     "watch": "tsc --watch",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "publish-git": "npm run prepublishOnly && node scripts/publish-git.js --branch='publish-branch' --message='Publishing new version'"
   },
   "author": "Jnesis",
   "license": "MIT",
