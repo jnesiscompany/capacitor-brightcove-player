@@ -14,28 +14,28 @@ public class BrightcoveAudioPlayer:NSObject {
     var video: BCOVVideo?
     var looping: Bool = false
     @objc var playerState: AudioPlayerState = AudioPlayerState()
-    
+
     var stateObserver: NSKeyValueObservation?
     var playerItemObserver: NSKeyValueObservation?
     var playerItemStatusObserver: NSKeyValueObservation?
     var timeObserverToken: Any?
     var remainingLoopTimeObserverToken: Any?
     var endReachedObserver: NSObjectProtocol?
-    
+
     var nowPlayingInfo = [String : Any]()
     var skipForwardIntervalSeconds: Int = 15;
     var skipBackwardIntervalSeconds: Int = 15;
-    
+
     var nowPlayingHandler: NowPlayingHandler?
-    
+
     var sendAudioPositionChange: Bool = true
-    
+
     private var loaded = false
 
     init(setup: BrightcoveSetup) {
         self.setup = setup
     }
-    
+
     func load(fileId: String, token: String, local: Bool, defaultPosterUrl: String, completion: @escaping (Error?) -> Void) {
         self.destroy()
         self.fileId = fileId
@@ -45,7 +45,7 @@ public class BrightcoveAudioPlayer:NSObject {
         if(self.fileId.isEmpty) {
             return completion(CustomError(PluginError.MISSING_FILEID, "BrightcoveAudioPlayer.checkFileId: FileId is missing in audio player (null fileId)"))
         }
-        
+
         print("Brightcove plugin: Searching for audio \(self.fileId)")
         self.loadAudio(local: local) {
             error in
@@ -56,12 +56,12 @@ public class BrightcoveAudioPlayer:NSObject {
             }
         }
     }
-    
+
     func loadAudio(local: Bool, completion: @escaping (Error?) -> Void) {
         let loadFunction = local ? loadLocalAudio : loadOnlineAudio
         let message = local ? "Brightcove plugin: Run audio locally" : "Brightcove plugin: Run audio online"
         print(message)
-        
+
         loadFunction {
             error in
             if let error = error {
@@ -71,26 +71,26 @@ public class BrightcoveAudioPlayer:NSObject {
             }
         }
     }
-    
+
     func enableAudioLooping(time: Double?) throws {
         if let loopingTime = time {
             try self.toggleLooping(enabled: true)
             self.remainingTime = Int64(loopingTime)
         }
     }
-    
+
     private func loadLocalAudio(completion: @escaping (Error?) -> Void) {
         guard let brightcoveOfflineManager = BCOVOfflineVideoManager.shared() else {
             return completion(CustomError(PluginError.TECHNICAL_ERROR, "BrightcoveAudioPlayer.locaLocalAudio : Cannot get BCOVOfflineVideoManager"))
         }
-        
+
         var source: BCOVSource? = nil
-        
+
         for offlineVideoStatus in brightcoveOfflineManager.offlineVideoStatus() {
             guard let token = offlineVideoStatus.offlineVideoToken else {
                 return completion(CustomError(PluginError.TECHNICAL_ERROR, "BrightcoveAudioPlayer.locaLocalAudio : Cannot get token from offlineVideoStatus"))
             }
-            
+
             let downloadedVideoObject = brightcoveOfflineManager.videoObject(fromOfflineVideoToken: token)
 
             if let downloadedVideoId = downloadedVideoObject?.properties[kBCOVVideoPropertyKeyId] {
@@ -110,7 +110,7 @@ public class BrightcoveAudioPlayer:NSObject {
             }
         }
 
-        
+
         if(self.token.isEmpty) {
             print("Brightcove plugin: No local media, stream online media")
             self.loadOnlineAudio() { error in
@@ -136,12 +136,12 @@ public class BrightcoveAudioPlayer:NSObject {
             }
         }
     }
-    
+
     private func loadOnlineAudio(completion: @escaping (Error?) -> Void)  {
         if(!NetworkService.isConnected) {
             return completion(CustomError(PluginError.NO_INTERNET_CONNECTION,"NetworkService.checkIfOnline: Need internet connection to do this action"))
         }
-        
+
         setup.playbackService.findVideo(withVideoID: self.fileId, parameters: nil) { (video: BCOVVideo?, jsonResponse: [AnyHashable: Any]?, error: Error?) -> Void in
             if(error != nil) {
                 return completion(error)
@@ -150,13 +150,13 @@ public class BrightcoveAudioPlayer:NSObject {
             } else {
                 self.video = video
                 // We get the best source using the default policy
-         
+
                 let source = BCOVBasicSessionProviderOptions().sourceSelectionPolicy(video)
-                   
+
                 guard let url = source?.url else {
                     return completion(CustomError(PluginError.MISSING_SOURCE_URL, "BrightcoveAudioPlayer.load: Cannot load audio. Source not found (fileId: \(self.fileId))"))
                 }
-                
+
                 do {
                     try self.load(url: url)
                     return completion(nil)
@@ -190,16 +190,16 @@ public class BrightcoveAudioPlayer:NSObject {
         print("Brightcove plugin: Playing audio file at url: \(url)")
         try self.setupNowPlayingHandler()
     }
-    
+
     private func setupNowPlayingHandler() throws {
         guard let player = self.player else {
             throw CustomError(PluginError.TECHNICAL_ERROR,  "BrightcoveAudioPlayer.setupNowPlayingHandler: Player not available")
         }
-        
+
         let audioName = video?.properties[kBCOVVideoPropertyKeyName] as? String ?? "Unknown media"
         let audioDescription = video?.properties[kBCOVVideoPropertyKeyDescription] as? String ?? ""
         let audioThumbnail = self.defaultPosterUrl.isEmpty ? video?.properties[kBCOVVideoPropertyKeyThumbnail] as? String ?? "" : self.defaultPosterUrl
-        
+
         self.nowPlayingHandler = NowPlayingHandler(player: player)
         self.nowPlayingHandler?.updateNowPlaying(name: audioName, description: audioDescription, thumbnail: audioThumbnail)
         self.nowPlayingHandler?.updatePreferedIntervals(skipForwardIntervalSeconds: skipForwardIntervalSeconds, skipBackwardIntervalSeconds: skipBackwardIntervalSeconds)
@@ -227,23 +227,23 @@ public class BrightcoveAudioPlayer:NSObject {
             player.seek(to: time)
         }
     }
-    
+
     func setLockScreenIntervals(forwardMillis: Int?, backwardMillis: Int?) throws {
         if let lockScreenSkipForwardIntervalMs = forwardMillis, let lockScreenSkipBackwardIntervalMs = backwardMillis {
             self.skipForwardIntervalSeconds = lockScreenSkipForwardIntervalMs/1000
             self.skipBackwardIntervalSeconds = lockScreenSkipBackwardIntervalMs/1000
-            
+
             if((try? self.checkFileId()) != nil && (try? self.checkPlayer()) != nil) {
                 // If we are currently playing i.e. the player is set with a file id, we can directly update on the nowPlayingHandler, otherwise it will be done on the next instanciation
                 self.nowPlayingHandler?.updatePreferedIntervals(skipForwardIntervalSeconds: skipForwardIntervalSeconds, skipBackwardIntervalSeconds: skipBackwardIntervalSeconds)
             }
         }
     }
-    
+
     private func endReached() {
         // We reset the track to the start
         player?.seek(to: CMTime.zero)
-        
+
         self.playerState.state = AudioPlayerState.State.ENDED.rawValue
 
         if(self.looping) {
@@ -253,7 +253,7 @@ public class BrightcoveAudioPlayer:NSObject {
             self.player?.pause()
         }
     }
-    
+
     private func initPlayerStateObserver() {
         self.stateObserver = observe(
             \.playerState.state,
@@ -263,16 +263,16 @@ public class BrightcoveAudioPlayer:NSObject {
             if let newValue = change.newValue {
                 var state = [:]
                 state["state"] = newValue
-                
+
                 if(newValue == AudioPlayerState.State.ERROR.rawValue) {
                     state["error"] = self.playerState.error
                 }
-                
+
                 NotificationCenter.default.post(name: Notification.Name("audioStateChange"), object: nil, userInfo: state)
             }
         }
     }
-    
+
     private func initPlayerItemObserver(playerItem :AVPlayerItem) {
         self.playerItemObserver = playerItem.observe(\.status, options:  [.new, .old], changeHandler: { (playerItem, change) in
             if playerItem.status == .readyToPlay {
@@ -292,7 +292,7 @@ public class BrightcoveAudioPlayer:NSObject {
                 self.playerState.state = AudioPlayerState.State.NONE.rawValue
             }
         })
-        
+
         self.playerItemStatusObserver = self.player?.observe(\.timeControlStatus, options: [.new, .old], changeHandler: { (playerItem, change) in
             if playerItem.timeControlStatus == AVPlayer.TimeControlStatus.playing {
                 self.playerState.state = AudioPlayerState.State.RUNNING.rawValue
@@ -302,24 +302,24 @@ public class BrightcoveAudioPlayer:NSObject {
             }
         })
     }
-    
+
     private func addPeriodicTimeObserver() throws {
         guard let player = self.player else {
             throw CustomError(PluginError.TECHNICAL_ERROR,  "BrightcoveAudioPlayer.addPeriodicTimeObserver: Player not available")
         }
-        
+
         let timeScale = CMTimeScale(NSEC_PER_SEC)
         var time = CMTime(seconds: 1, preferredTimescale: timeScale)
         // Weak self is used here to prevent memory leaks
         // See https://www.codingem.com/weak-self-in-swift/
         self.timeObserverToken = player.addPeriodicTimeObserver(forInterval: time, queue: .main) {
             [weak self] time in
-            
+
             if(self?.sendAudioPositionChange == false) {
                 self?.sendAudioPositionChange = true
                 return
             }
-            
+
             var totalMillis :Int64 = 0
             if let currentItem = self?.player?.currentItem {
                 totalMillis = Int64(CMTimeGetSeconds(currentItem.asset.duration) * 1000)
@@ -338,18 +338,18 @@ public class BrightcoveAudioPlayer:NSObject {
                 )
             }
         }
-        
+
         time = CMTime(seconds: 0.05, preferredTimescale: timeScale)
         self.remainingLoopTimeObserverToken = self.player?.addPeriodicTimeObserver(forInterval: time, queue: .main) {
             [weak self] time in
             do {
                 if let remainingTime = self?.remainingTime {
                     let newRemainingTime = remainingTime - 50
-                    
+
                     if self?.playerState.state == AudioPlayerState.State.RUNNING.rawValue {
                         self?.remainingTime = newRemainingTime
                     }
-                    
+
                     if (newRemainingTime <= 0) {
                         self?.remainingTime = nil
                         try self?.stop()
@@ -359,7 +359,7 @@ public class BrightcoveAudioPlayer:NSObject {
             }
             catch let error as NSError {
                 print("Brightcove plugin: Error: \(error.localizedDescription)")
-            }            
+            }
         }
     }
 
@@ -368,26 +368,31 @@ public class BrightcoveAudioPlayer:NSObject {
             self.player?.removeTimeObserver(timeObserverToken)
             self.timeObserverToken = nil
         }
+
+        if let remainingLoopTimeObserverToken = remainingLoopTimeObserverToken {
+            self.player?.removeTimeObserver(remainingLoopTimeObserverToken)
+            self.remainingLoopTimeObserverToken = nil
+        }
     }
-    
+
     func stop() throws {
         try self.seekTo(position: 0)
         self.player?.pause()
         self.playerState.state = AudioPlayerState.State.STOPPED.rawValue
     }
-    
+
     func pause() throws {
         try self.checkFileId()
         try self.checkPlayer()
         self.player?.pause()
     }
-    
+
     func play() throws {
         try self.checkFileId()
         try self.checkPlayer()
         self.player?.play()
     }
-    
+
     func forward(millis: Double?) throws {
         if let forwardMillis = millis {
             try self.seek(millis: Float64(forwardMillis))
@@ -403,7 +408,7 @@ public class BrightcoveAudioPlayer:NSObject {
             try self.seek(millis: -15000)
         }
     }
-    
+
     func seek(millis: Float64) throws {
         try self.checkFileId()
         try self.checkPlayer()
@@ -413,9 +418,9 @@ public class BrightcoveAudioPlayer:NSObject {
         guard let player = self.player else {
             throw CustomError(PluginError.TECHNICAL_ERROR, "BrightcoveAudioPlayer.seek : Player is nil")
         }
-        
+
         let playerCurrentTime = CMTimeGetSeconds(player.currentTime())
-        
+
         var newTime = playerCurrentTime + millis/1000
         if newTime < 0 {
             newTime = 0
@@ -429,7 +434,7 @@ public class BrightcoveAudioPlayer:NSObject {
             return
         }
     }
-    
+
     func seekTo(position: Float64?) throws {
         if let seekToPosition = position {
             self.sendAudioPositionChange = false
@@ -439,19 +444,19 @@ public class BrightcoveAudioPlayer:NSObject {
             self.player?.seek(to: position)
         }
     }
-    
+
     private func checkFileId() throws {
         if(self.fileId.isEmpty) {
             throw CustomError(PluginError.MISSING_FILEID, "BrightcoveAudioPlayer.checkFileId: FileId is missing in audio player (null fileId)")
         }
     }
-    
+
     private func checkPlayer() throws {
         guard self.player != nil else {
             throw CustomError(PluginError.MISSING_SOURCE_URL,  "BrightcoveAudioPlayer.checkPlayer: Source url is missing in audio player")
         }
     }
-    
+
     func toggleLooping(enabled: Bool) throws {
         try self.checkFileId()
         self.looping = enabled
@@ -460,11 +465,11 @@ public class BrightcoveAudioPlayer:NSObject {
            self.remainingTime = nil
        }
     }
-    
+
     func isLooping() throws -> Bool {
         return self.looping
     }
-    
+
     func getPlayerState() -> AudioPlayerState{
         if let player = self.player {
             let currentTime = player.currentTime()
@@ -472,7 +477,7 @@ public class BrightcoveAudioPlayer:NSObject {
             if let duration = player.currentItem?.asset.duration {
                 totalMillis = Int64(CMTimeGetSeconds(duration) * 1000)
             }
-            
+
            return AudioPlayerState(
                 state: self.playerState.state,
                 currentMillis: (self.playerState.state == AudioPlayerState.State.STOPPED.rawValue ? 0 : Int64(CMTimeGetSeconds(currentTime) * 1000)),
@@ -483,7 +488,7 @@ public class BrightcoveAudioPlayer:NSObject {
         }
         return AudioPlayerState()
     }
-    
+
     func destroy() {
         NotificationCenter.default.post(name: Notification.Name("audioStateChange"), object: nil, userInfo: ["state":  AudioPlayerState.State.NONE.rawValue])
         NotificationCenter.default.removeObserver(self.endReachedObserver as Any)

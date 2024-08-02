@@ -33,14 +33,19 @@ open class OnSwipeTouchListener(context: Context?) : OnTouchListener {
             return true
         }
 
-        override fun onFling(start: MotionEvent, end: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
-            val distanceX = end.x - start.x
-            val distanceY = end.y - start.y
-            if (abs(distanceX) < abs(distanceY) && abs(distanceY) > SWIPE_DISTANCE_THRESHOLD && abs(velocityY) > SWIPE_VELOCITY_THRESHOLD) {
-                if (distanceY > 0) onSwipeDown()
-                return true
+        override fun onFling(start: MotionEvent?, end: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+                if (start != null) {
+                    val distanceX = end.x - start.x
+                    val distanceY = end.y - start.y
+                    if (abs(distanceX) < abs(distanceY) && abs(distanceY) > SWIPE_DISTANCE_THRESHOLD && abs(
+                        velocityY
+                        ) > SWIPE_VELOCITY_THRESHOLD
+                    ) {
+                        if (distanceY > 0) onSwipeDown()
+                        return true
+                    }
+                }
+                return false
             }
-            return false
         }
-    }
 }

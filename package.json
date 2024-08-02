@@ -2,10 +2,7 @@
   "name": "capacitor-brightcove-player",
   "version": "6.0.2",
   "description": "Play video and audio files from Brightcove Video Cloud with offline features",
-  "main": "dist/plugin.cjs.js",
-  "module": "dist/esm/index.js",
-  "types": "dist/esm/index.d.ts",
-  "unpkg": "dist/plugin.js",
+  "main": "src/index.ts",
   "scripts": {
     "verify": "npm run verify:ios && npm run verify:android && npm run verify:web",
     "verify:ios": "cd ios && pod install && xcodebuild -workspace Plugin.xcworkspace -scheme Plugin -destination generic/platform=iOS && cd ..",
@@ -32,13 +29,14 @@
     "@ionic/eslint-config": "^0.3.0",
     "@ionic/prettier-config": "^1.0.1",
     "@ionic/swiftlint-config": "^1.1.2",
+    "@types/node": "^22.0.3",
     "eslint": "^7.11.0",
     "prettier": "~2.3.0",
     "prettier-plugin-java": "~1.0.2",
     "rimraf": "^3.0.2",
     "rollup": "^2.32.0",
     "swiftlint": "^1.0.1",
-    "typescript": "~4.1.5"
+    "typescript": "^4.8.4"
   },
   "peerDependencies": {
     "@capacitor/core": "^5.0.0"
@@ -46,6 +44,7 @@
   "files": [
     "dist/",
     "ios/",
+    "src/",
     "android/",
     "CapacitorBrightcovePlayer.podspec"
   ],
